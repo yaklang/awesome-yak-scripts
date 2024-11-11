@@ -1,0 +1,84 @@
+keyword = "shiro"
+
+swg = sync.NewSizedWaitGroup(10)
+finalResult = make([]string)
+lock = sync.NewLock()
+
+filename := "/tmp/" + keyword + ".txt";
+file.Remove(filename)
+o = file.Open(filename)~
+defer o.Close()
+
+existed = {}
+
+for i in cve.QueryEx(cve.product("%" + keyword + "%")) {
+    i := i
+    cpe := string(i.CPEConfigurations)
+    if !cpe.Contains(keyword) {
+        continue
+    }
+    
+
+    swg.Add()
+    go func {
+        defer func() {
+            swg.Done()
+        }()
+
+        for  in 20 {
+                result = ai.Chat(
+                    f`
+请你把下面 CPE 的信息总结一下，提取产品包含 ${keyword} 关键字的产品 CPE，并他们总结成区间，案例如下：(1.2.3,2.3.4] 省略推理过程，直接给我JSON 结果
+-----------
+${cpe}
+-----------
+省略推理过程，直接给我JSON 结果，结果放在 JSON 中，JSON 中字段要求如下 不要出现 ranges 这个key，结果是一个对象，只包含 range 和 product 这两个 key:
+
+字段1：range，注意 range 的类型是一个字符串，返回的结果应该始终是字符串
+字段2: product, 注意 product 也是一个字符串，他的返回结果为版本范围对应的产品名，
+
+例如 {"range": "(1.2.3,2.3.4]", "product": "productname"} 或者 {"range": "(1.2.3,2.3.4]|(2.0.0, 4.4.5]", "product": "productname"}，省
+
+`, 
+                    ai.debugStream(true), 
+                )~
+                resultObj = json.loads(json.ExtractJSON(result)[0])
+                result = resultObj["range"]
+                name = resultObj["product"]
+                if typeof(result) != string {
+                    continue
+                }
+                
+
+                msg = sprintf("%#v, %#v, %#v, %#v", i.CVE, i.CWE, name, result)
+                lock.Lock()
+                finalResult.Push(msg)
+
+                cveId := i.CVE.ReplaceAll("-", "_")
+                versionIdNum := len(existed)
+                versionId = ""
+                if !(name in existed) {
+                    versionId = "$version_" + sprint(versionIdNum)
+                    ver := "\n\n__dependency__.*" + name.ReplaceAll(":", "*").ReplaceAll("-", "*") + ".version as " + versionId + ";\n"
+                    o.Write(ver)
+                    existed[name] = versionId
+                } else {
+                    versionId = sprint(existed[name])
+                }
+                
+                for versionRange in result.Split("|") {
+                    filter := versionId + " in " + versionRange.ReplaceAll(":", "") + " as $" + cveId + ";\n" + 
+                    "alert $" + cveId + " for {cve: " + codec.StrconvQuote(i.CVE).ReplaceAll("\\x2d", "_") + ", cwe:" + codec.StrconvQuote(i.CWE).ReplaceAll("\\x2d", "-") + ", title_zh: " + f"<<<CVETITLEZH\n${i.TitleZh}\nCVETITLEZH" + "}; \n"
+                    o.Write(string(filter) + "\n")
+                }
+                
+                lock.Unlock()
+                return
+        }
+        
+    }
+}
+
+swg.Wait()
+finalStr = str.Join(finalResult, "\n")
+println(finalStr)
