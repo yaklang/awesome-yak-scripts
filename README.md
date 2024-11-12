@@ -4,6 +4,8 @@ the Current Project is a collection of scripts that are used to automate tasks i
 
 # Scripts Directory
 
+1. [从 Maven 仓库同步依赖源信息（缓存本地文件系统） / Sync Dependency Source Information from Maven Repository](maven-checking.yak)
+
 ## Security Issue AI Helper
 
 1. [从CVE数据库和AI生成SCA检查脚本 / Generate SCA Checking Script from CVE Database and AI](generate-sca-from-cvedb-and-ai.yak)

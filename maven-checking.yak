@@ -1,0 +1,143 @@
+base = "~/Projects/maven-mirror"
+
+if base.HasPrefix("~") {
+    base = base[2:]
+    base = file.Join("/Users/v1ll4n", base)
+}
+
+file.MkdirAll(base)~
+proxy = "http://127.0.0.1:7890"
+
+swg = sync.NewSizedWaitGroup(20)
+
+
+fetchNext = (url, basePath) => {
+    for secondTime in 5 {
+        try {
+            return _fetchNext(url, basePath)
+        } catch e {
+            log.error("fetch error: %v", url)
+            sleep(1 + 1 * secondTime)
+            continue
+        }
+    }
+}
+
+_fetchNext = (url, basePath) => {
+    if file.IsExisted(basePath) {
+        results = []
+        for info in file.Ls(basePath) {
+            next = info.Name
+            if info.IsDir {
+                next = next.HasSuffix("/") ? next : (next + "/")
+            }
+
+            if next.Contains("maven-metadata.xml") {
+                println("Have %v in %v" % [next, url])
+                return []
+            }    
+
+            if next.Contains("no-existed.txt") {
+                println("emtpy package for %v" % url)
+                return []
+            }
+            results.Push(next)
+        }
+        
+        if results.Len() > 0 {
+            return results
+        }
+        
+    } else {
+        println("not existed: %v" % basePath)
+    }
+    
+    swg.Add()
+    println("start to find %v" % url)
+    rsp, req, err := poc.Get(
+        url, 
+        poc.proxy(proxy), 
+        poc.randomJA3(true), 
+        poc.replaceUserAgent(`Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36`), 
+        poc.retryNotInStatusCode(200), 
+        poc.retryTimes(10), 
+    )
+    swg.Done()
+    if err != nil {
+        die(err)
+    }
+    println("finished to find %v" % url)
+    body = rsp.GetBody()
+    node = xpath.LoadHTMLDocument(body)~
+    results = xpath.QueryAll(node, `//*[@id="contents"]/child::a/@href`)~
+    return results.Map(i => f`${xpath.OutputHTML(i)}`)
+}
+
+recursive = (url, basePath) => {
+    defer recover()
+
+
+    if !file.IsExisted(basePath) {
+        file.MkdirAll(basePath)
+    }
+    
+
+
+// println("start to view url: %v" % url)
+    results = fetchNext(url, basePath)
+    next = []
+    haveMetadataXML = false
+    for i in results {
+        nextItem = i
+
+        if nextItem.Contains(`maven-metadata.xml`) {
+            haveMetadataXML = true
+        }
+        
+
+        if nextItem == "../" {
+            continue
+        }
+        
+
+        if !nextItem.HasSuffix("/") {
+            continue
+        }
+        
+
+        next.Push(nextItem)
+    }
+    
+
+    if haveMetadataXML {
+        file.Save(file.Join(basePath, `maven-metadata.xml`), "")
+    }
+
+    if next.Len() <= 0 {
+        file.Save(file.Join(basePath, "no-existed.txt"), time.Now())
+    }
+    
+    for i in next {
+        newPath = file.Join(basePath, i)
+        file.MkdirAll(newPath)
+    }
+    
+
+    if haveMetadataXML {
+        return
+    }
+    
+
+    for info in next {
+        newUrl := str.UrlJoin(url, info)~
+        newPath := file.Join(basePath, info)
+        go func {
+            defer recover()
+            recursive(newUrl, newPath)
+        }
+    }
+    
+}
+
+recursive("https://repo.maven.apache.org/maven2/", base)
+swg.Wait()
