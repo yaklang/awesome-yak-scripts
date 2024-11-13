@@ -1,6 +1,6 @@
 # Awesome Yak Scripts
 
-the Current Project is a collection of scripts that are used to automate tasks in the Yak Shaving project.
+the Current Project is a collection of scripts that are used to automate tasks in the Yak Project.
 
 # Scripts Directory
 
