@@ -1,0 +1,28 @@
+m = hook.NewMixPluginCaller()~
+
+plugins = []
+for result in db.YieldYakScriptAll() {
+    if result.Type in ["mitm", "port-scan"] && result.GetParams().Len() <= 0 {
+        start = now()
+        err = m.LoadPlugin(result.ScriptName)
+        end = now()
+
+        if err != nil {
+            log.Error("load: %v err: %v", result.ScriptName, err)
+            plugins.Push(result.ScriptName)
+        } else {
+            du = end.Sub(start)
+            // log.Info("load: %v cost: %v", result.ScriptName, du.String())
+            if du.Milliseconds() > 100 {
+                plugins.Push(result.ScriptName)
+                log.Warn("PLUGIN: %v NEED FIX" % result.ScriptName)
+            }
+            
+        }
+        
+    }
+    
+}
+
+
+plugins.Map(i => {println(i)})
