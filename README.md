@@ -13,4 +13,4 @@ the Current Project is a collection of scripts that are used to automate tasks i
 ## Development Helper Scripts
 
 1. [从日志中提取panic和ast错误 / Extract Panic and ast error From Logs](extract-panic-and-ast-error-from-log.yak)
-1. [检查 Yakit 插件商店下载到本地的导入不健康的插件 / ](checking-import-unhealthy-plugins.yak)
+1. [检查 Yakit 插件商店下载到本地的导入不健康的插件 / Check Unhealthy Plugins Imported from Yakit Plugin Store](checking-import-unhealthy-pugins.yak)
