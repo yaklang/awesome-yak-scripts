@@ -1,0 +1,74 @@
+port = cli.Int("port", cli.setDefault(8099), cli.setHelp("设置端口函数"))
+cli.check()
+
+routes = {}
+register = (route, callback) => {
+    if route in routes {
+        die("Duplicated route: %v" % route)
+    }
+    routes[route] = callback
+}
+
+bodyEcho := (writer /* http.ResponseWriter */, req) => {
+    reqBytes := http.dump(req)~
+    writer.Write(poc.GetHTTPPacketBody(reqBytes))
+}
+register("/api/echo", bodyEcho)
+register("/api/body/echo*", bodyEcho)
+
+requestEcho = (writer, req) => {
+    reqBytes := http.dump(req)~
+    writer.Write(reqBytes)
+}
+register("/api/request/echo*", requestEcho)
+
+syntaxChecking = (writer, req) => {
+    if "YaklangScriptChecking" in ssa {
+        writer.Write("")
+        return
+    }
+}
+register("/api/yak/syntax/checking*", syntaxChecking)
+
+register("/api/test/chunk*", (rsp, req) => {
+    rsp.Header().Set("transfer-encoding", "chunked")
+    for in 3 {
+        size = randn(10, 200)
+        rsp.Write("%x" % size)
+        rsp.Write("\r\n")
+        rsp.Write(randstr(size))
+        rsp.Write("\r\n")
+        rsp.Flush()
+        sleep(0.5)
+    }
+    rsp.Write("0\r\n\r\n")
+})
+
+c := make(chan bool)
+go func {
+    for {
+        log.Info("start to listen on: %v", "0.0.0.0:" + sprint(port))
+        err := httpserver.Serve(
+            "0.0.0.0", 
+            port, 
+            httpserver.handler((writer, req) => {
+                defer recover()
+                path := req.RequestURI
+                for k, v := range routes {
+                    if str.MatchAllOfGlob(path, k) {
+                        v(writer, req)
+                        return
+                    }
+                }
+                
+                writer.Header().Set("Content-Type", "application/json")
+                writer.Write(`{"reason": "no route matched: %#v"}` % path)
+            }), 
+        )
+        if err != nil {
+            log.Error("cannot serve (server fault): %v, retry it!", err)
+        }
+        sleep(1.5)
+    }
+}
+c <- true
