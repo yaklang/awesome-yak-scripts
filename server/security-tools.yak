@@ -24,9 +24,18 @@ register("/api/request/echo*", requestEcho)
 
 syntaxChecking = (writer, req) => {
     if "YaklangScriptChecking" in ssa {
-        writer.Write("")
+        result = ssa.YaklangScriptChecking(req.Body, "yak")
+        writer.Write(json.dumps({
+            "ok": true,
+            "result": sdump(result)
+        }))
         return
     }
+    writer.Write(json.dumps({
+        "ok": false,
+        "reason": "YaklangScriptChecking not found",
+        "result": "",
+    }))
 }
 register("/api/yak/syntax/checking*", syntaxChecking)
 
