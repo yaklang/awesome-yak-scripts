@@ -23,6 +23,16 @@ requestEcho = (writer, req) => {
 register("/api/request/echo*", requestEcho)
 
 syntaxChecking = (writer, req) => {
+    defer fn {
+        err := recover() 
+        if err != nil {
+            writer.Write(json.dumps({
+                "ok": false,
+                "reason": err,
+                "result": "",
+            }))
+        }
+    }
     if "YaklangScriptChecking" in ssa {
         result = ssa.YaklangScriptChecking(req.Body, "yak")
         writer.Write(json.dumps({
