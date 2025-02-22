@@ -63,9 +63,25 @@ go func {
             httpserver.handler((writer, req) => {
                 defer recover()
 
+                remoteAddr := req.RemoteAddr
+                if remoteAddr {
+                    host, _, _ = str.ParseStringToHostPort(remoteAddr)
+                    if str.HasPrefix(host, "127") {
+                        // 使用 nginx 配置的 X-Real-IP 或 X-Forwarded-For header
+                        realIP := req.Header.Get("X-Real-IP");
+                        forwardedFor := req.Header.Get("X-Forwarded-For");
+                        if realIP != "" {
+                            remoteAddr = realIP
+                        } else if forwardedFor != "" {
+                            // 取第一个IP
+                            remoteAddr = str.Split(forwardedFor, ",")[0]
+                        }
+                    }
+                }
+
                 writer.Header().Set("Access-Control-Allow-Origin", "*")
                 writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-                writer.Header().Set("X-Request-Remote-Addr", req.RemoteAddr)
+                writer.Header().Set("X-Request-Remote-Addr", remoteAddr)
 
                 path := req.RequestURI
                 for k, v := range routes {
@@ -77,9 +93,9 @@ go func {
                 
                 if req.RemoteAddr != "" {
                     writer.Header().Set("Content-Type", "text/plain")
-                    host, port, err := str.ParseStringToHostPort(req.RemoteAddr)
+                    host, port, err := str.ParseStringToHostPort(remoteAddr)
                     if err != nil {
-                        writer.Write(req.RemoteAddr)
+                        writer.Write(remoteAddr)
                     } else {
                         writer.Write(host)
                     }
