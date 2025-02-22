@@ -28,7 +28,7 @@ syntaxChecking = (writer, req) => {
         if err != nil {
             writer.Write(json.dumps({
                 "ok": false,
-                "reason": err,
+                "reason": `%v` % err,
                 "result": "",
             }))
         }
