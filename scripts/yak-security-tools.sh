@@ -27,6 +27,29 @@ if [ ! -d "$SCRIPT_DIR" ]; then
     fi
 fi
 
+# Check if service exists and is running
+if systemctl is-active yak-security-tools.service &>/dev/null; then
+    echo "Yak security tools service is already running"
+    echo "Restarting service..."
+    if ! sudo systemctl restart yak-security-tools.service; then
+        echo "Error: Failed to restart service"
+        exit 1
+    fi
+    echo "Service restarted successfully"
+else
+    echo "Installing yak security tools service..."
+    if ! sudo systemctl enable yak-security-tools.service; then
+        echo "Error: Failed to enable service"
+        exit 1
+    fi
+    if ! sudo systemctl start yak-security-tools.service; then
+        echo "Error: Failed to start service" 
+        exit 1
+    fi
+    echo "Service installed and started successfully"
+fi
+
+
 # Validate script path
 SCRIPT_PATH="$SCRIPT_DIR/server/security-tools.yak"
 if [ ! -f "$SCRIPT_PATH" ]; then
