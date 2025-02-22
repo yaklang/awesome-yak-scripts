@@ -1,4 +1,4 @@
-port = cli.Int("port", cli.setDefault(80), cli.setHelp("设置端口函数"))
+port = cli.Int("port", cli.setDefault(8099), cli.setHelp("设置端口函数"))
 cli.check()
 
 routes = {}
@@ -56,10 +56,10 @@ register("/api/test/chunk*", (rsp, req) => {
 c := make(chan bool)
 go func {
     for {
-        log.Info("start to listen on: %v", "0.0.0.0:" + sprint(port))
+        log.Info("start to listen on: %v", "127.0.0.1:" + sprint(port))
         err := httpserver.Serve(
             "0.0.0.0", 
-            port, 
+            port,
             httpserver.handler((writer, req) => {
                 defer recover()
 
@@ -77,7 +77,12 @@ go func {
                 
                 if req.RemoteAddr != "" {
                     writer.Header().Set("Content-Type", "text/plain")
-                    writer.Write(req.RemoteAddr)
+                    host, port, err := str.ParseStringToHostPort(req.RemoteAddr)
+                    if err != nil {
+                        writer.Write(req.RemoteAddr)
+                    } else {
+                        writer.Write(host)
+                    }
                     return
                 }
                 writer.Header().Set("Content-Type", "text/plain")
