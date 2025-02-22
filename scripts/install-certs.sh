@@ -175,8 +175,14 @@ EOL
     sudo chmod +x /usr/local/bin/ssl-manager
 fi
 
-# Test and reload Nginx
-sudo nginx -t && sudo systemctl reload nginx
+# Test Nginx configuration and manage service
+if sudo nginx -t; then
+    if systemctl is-active nginx >/dev/null 2>&1; then
+        sudo systemctl reload nginx
+    else
+        sudo systemctl start nginx
+    fi
+fi
 
 print_message "success" "Deployment completed!"
 if [ "$skip_cert" = false ]; then
