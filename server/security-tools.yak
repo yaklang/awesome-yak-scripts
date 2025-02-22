@@ -34,7 +34,7 @@ syntaxChecking = (writer, req) => {
         }
     }
     if "YaklangScriptChecking" in ssa {
-        result = ssa.YaklangScriptChecking(req.Body, "yak")
+        result = ssa.YaklangScriptChecking(io.ReadAll(req.Body)~, "yak")
         writer.Write(json.dumps({
             "ok": true,
             "result": sdump(result)
