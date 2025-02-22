@@ -1,4 +1,4 @@
-port = cli.Int("port", cli.setDefault(8099), cli.setHelp("设置端口函数"))
+port = cli.Int("port", cli.setDefault(80), cli.setHelp("设置端口函数"))
 cli.check()
 
 routes = {}
@@ -62,6 +62,11 @@ go func {
             port, 
             httpserver.handler((writer, req) => {
                 defer recover()
+
+                writer.Header().Set("Access-Control-Allow-Origin", "*")
+                writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                writer.Header().Set("X-Request-Remote-Addr", req.RemoteAddr)
+
                 path := req.RequestURI
                 for k, v := range routes {
                     if str.MatchAllOfGlob(path, k) {
@@ -70,8 +75,13 @@ go func {
                     }
                 }
                 
-                writer.Header().Set("Content-Type", "application/json")
-                writer.Write(`{"reason": "no route matched: %#v"}` % path)
+                if req.RemoteAddr != "" {
+                    writer.Header().Set("Content-Type", "text/plain")
+                    writer.Write(req.RemoteAddr)
+                    return
+                }
+                writer.Header().Set("Content-Type", "text/plain")
+                writer.Write(`It works!`)
             }), 
         )
         if err != nil {
