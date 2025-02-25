@@ -125,7 +125,7 @@ register("/api/ai/training/material/collect*", (rsp, req) => {
     if expected == "" || err != nil {
         rsp.Write(json.dumps({
             "ok": false,
-            "reason": "empty ai-training-secret, try to create it in: yakit-projects/ai-training-secret.txt",
+            "reason": "empty ai-training-secret, try to create it in: yakit-projects/ai-training-secret.txt, err: %v" % err,
             "result": "",
         }))
         return
