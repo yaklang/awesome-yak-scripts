@@ -25,7 +25,12 @@ register("/api/request/echo*", requestEcho)
 # AI Material Collection
 submitAITrainingMaterial = (aiMaterial) => {
     homeDir = os.GetHomeDir()
-    kbbase = [file.Join(homeDir, "yaklang-ai-kb"), file.Join(homeDir, "yaklang-ai-training-materials")]
+    kbbase = [
+        file.Join(homeDir, "yaklang-ai-kb"),
+        file.Join(homeDir, "yaklang-ai-training-materials"),
+        file.Join("/", "root", "yaklang-ai-kb"),
+        file.Join("/", "root", "yaklang-ai-training-materials"),
+    ]
 
     aikbbase = ""
     for p in kbbase {
@@ -37,7 +42,7 @@ submitAITrainingMaterial = (aiMaterial) => {
     
 
     if aikbbase == "" {
-        die("cannot find ai-training-materails repos")
+        die("cannot find ai-training-materails repos in all dirs: %#v" % kbbase)
     }
     
     log.Info("find ai-training repos: %v", aikbbase)
