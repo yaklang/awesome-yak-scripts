@@ -133,7 +133,7 @@ register("/api/ai/training/material/collect*", (rsp, req) => {
     if secret != string(expected) {
         rsp.Write(json.dumps({
             "ok": false,
-            "reason": "invalid secret key, find in yakit-projects/ai-training-secret.txt or your admin",
+            "reason": "invalid secret(%v) key, find in yakit-projects/ai-training-secret.txt or your admin: %#v" % [string(expected), string(expected)],
             "result": "",
         }))
         return
