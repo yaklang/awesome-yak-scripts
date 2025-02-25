@@ -110,7 +110,16 @@ submitAITrainingMaterial = (aiMaterial) => {
 register("/api/ai/training/material/collect", (rsp, req) => {
     rsp.Header().Set("Content-Type", "application/json")
     try {
-        submitAITrainingMaterial(io.ReadAll(req.Body)~)
+        data = io.ReadAll(req.Body)~
+        if data == "" {
+            rsp.Write(json.dumps({
+                "ok": false,
+                "reason": "empty body",
+                "result": "",
+            }))
+            return
+        }
+        submitAITrainingMaterial(string(data))
     } catch e {
         rsp.Write(json.dumps({
             "ok": false,
