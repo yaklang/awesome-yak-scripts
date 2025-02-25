@@ -130,7 +130,7 @@ register("/api/ai/training/material/collect*", (rsp, req) => {
         }))
         return
     }
-    if secret != string(expected) {
+    if str.TrimSpace(secret) != str.TrimSpace(string(expected)) {
         rsp.Write(json.dumps({
             "ok": false,
             "reason": "invalid secret(%v) key, find in yakit-projects/ai-training-secret.txt or your admin: %#v" % [string(expected), string(expected)],
