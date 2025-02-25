@@ -111,9 +111,9 @@ submitAITrainingMaterial = (aiMaterial) => {
     submitAndPR(ctx, aiMaterial)
 }
 register("/api/ai/training/material/collect*", (rsp, req) => {
-    rsp.Header().Set("Access-Control-Allow-Origin", "*")
-    rsp.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-    rsp.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    // rsp.Header().Set("Access-Control-Allow-Origin", "*")
+    // rsp.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+    // rsp.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
     secret = req.URL.Query().Get("key")
     if secret == "" {
@@ -241,9 +241,9 @@ go func {
                 }
 
 
-                writer.Header().Set("Access-Control-Allow-Origin", "*")
-                writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-                writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+                // writer.Header().Set("Access-Control-Allow-Origin", "*")
+                // writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                // writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
                 writer.Header().Set("X-Request-Remote-Addr", remoteAddr)
 
                 # 处理 OPTIONS 请求
