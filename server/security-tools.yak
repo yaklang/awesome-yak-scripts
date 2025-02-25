@@ -135,7 +135,7 @@ register("/api/ai/training/material/collect*", (rsp, req) => {
         expected = len(expected) > 4 ? expected[:4] + "..." : expected
         rsp.Write(json.dumps({
             "ok": false,
-            "reason": "invalid secret(%v) key, find in yakit-projects/ai-training-secret.txt or your admin: %v" % [string(expected), string(expected)],
+            "reason": "invalid secret(current: %v) key, find in yakit-projects/ai-training-secret.txt or your admin: %v" % [string(secret), string(expected)],
             "result": "",
         }))
         return
