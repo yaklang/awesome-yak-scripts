@@ -110,7 +110,7 @@ submitAITrainingMaterial = (aiMaterial) => {
     ctx = context.WithTimeoutSeconds(30)
     submitAndPR(ctx, aiMaterial)
 }
-register("/api/ai/training/material/collect", (rsp, req) => {
+register("/api/ai/training/material/collect*", (rsp, req) => {
     secret = req.URL.Query().Get("key")
     if secret == "" {
         rsp.Write(json.dumps({
