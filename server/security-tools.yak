@@ -122,6 +122,7 @@ register("/api/ai/training/material/collect*", (rsp, req) => {
     }
 
     expected, err = io.ReadFile(file.Join(yakit.GetHomeDir(), "ai-training-secret.txt"))
+    expected = str.TrimSpace(string(expected))
     if expected == "" || err != nil {
         rsp.Write(json.dumps({
             "ok": false,
