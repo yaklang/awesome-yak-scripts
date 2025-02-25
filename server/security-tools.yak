@@ -22,6 +22,111 @@ requestEcho = (writer, req) => {
 }
 register("/api/request/echo*", requestEcho)
 
+# AI Material Collection
+submitAITrainingMaterial = (aiMaterial) => {
+    homeDir = os.GetHomeDir()
+    kbbase = [file.Join(homeDir, "yaklang-ai-kb"), file.Join(homeDir, "yaklang-ai-training-materials")]
+
+    aikbbase = ""
+    for p in kbbase {
+        if file.IsExisted(p) {
+            aikbbase = p
+            break
+        }
+    }
+    
+
+    if aikbbase == "" {
+        log.Error("cannot find ai-training-materails repos")
+        return
+    }
+    
+
+    log.Info("find ai-training repos: %v", aikbbase)
+    os.Chdir(aikbbase)
+
+    token = randstr(12)
+    dateStr := date()
+    branchName = f"doc/${dateStr}-unverified-${token}"
+    log.Info("start to try branch: %v", branchName)
+    resetGitToMain = `git reset --hard HEAD && git clean -fdx && (git checkout main || git checkout -f main) && git fetch origin && git reset --hard origin/main`
+    submitAndPR = (ctx, content) => {
+        fp = file.TempFile()~
+        fp.WriteString(content)
+        fp.Close()
+
+        fname = fp.Name()
+        log.Info("create temp file: %v", fname)
+        assert file.IsExisted(fname)
+
+        results, err = exec.SystemContext(ctx, `git remote -v`)
+        if err != nil {
+            println(string(results))
+            die("BUG: cannot exec git remote -v")
+        }
+        
+
+        if !str.MatchAnyOfSubString(
+            string(results), 
+            `github.com/yaklang/yaklang-ai-kb`, 
+            `github.com/yaklang/yaklang-ai-training-materials`, 
+        ) {
+            println(string(results))
+            die("BUG, the current script should be set in yaklang-ai-training-materials")
+        }
+        
+
+        try {
+            results, err = exec.SystemContext(ctx, `bash -c ` + str.Quote(resetGitToMain))
+            if err != nil {
+                println(string(results))
+                die(err)
+            }
+        } catch e {
+            println(string(results))
+            die("BUG: cannot set main branch in git repos, reason: %v" % e)
+        }
+
+
+        _, _ = exec.SystemContext(
+            ctx, 
+            `bash -c` + str.Quote(`git branch | grep -v main | xargs git branch -D`), 
+        )
+
+        cmds = [f"git checkout -b ${branchName}", f"git checkout ${branchName}", "mkdir -p library-usage/unverified", f"cp ${fname} library-usage/unverified", "git add .", "git commit -m '[auto] add ai training materials'", f"git push origin ${branchName}", f"gh pr create --title '[Unverified] AI Training Material' --body 'This doc is created via AI, human should verify it' --repo yaklang/yaklang-ai-training-materials --head ${branchName} --base main"]
+
+        for cmd in cmds {
+            log.Info("exec cmd: %v", cmd)
+            raw, err = exec.SystemContext(ctx, cmd)
+            if err != nil {
+                die("create and push PR failed: %#v, err: %v" % [string(raw), err])
+            }
+        }
+    }
+
+    ctx = context.WithTimeoutSeconds(30)
+    submitAndPR(ctx, aiMaterial)
+}
+register("/api/ai/training/material/collect", (rsp, req) => {
+    rsp.Header().Set("Content-Type", "application/json")
+    try {
+        submitAITrainingMaterial(io.ReadAll(req.Body)~)
+    } catch e {
+        rsp.Write(json.dumps({
+            "ok": false,
+            "reason": `%v` % e,
+            "result": "",
+        }))
+        return
+    }
+    rsp.Write(json.dumps({
+        "ok": true,
+        "reason": "success",
+        "result": "see: https://github.com/yaklang/yaklang-ai-training-materials/pulls",
+    }))
+    return
+})
+
 syntaxChecking = (writer, req) => {
     defer fn {
         err := recover() 
