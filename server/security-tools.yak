@@ -111,6 +111,34 @@ submitAITrainingMaterial = (aiMaterial) => {
     submitAndPR(ctx, aiMaterial)
 }
 register("/api/ai/training/material/collect", (rsp, req) => {
+    secret = req.URL.Query().Get("key")
+    if secret == "" {
+        rsp.Write(json.dumps({
+            "ok": false,
+            "reason": "empty secret key",
+            "result": "",
+        }))
+        return
+    }
+
+    expected = io.ReadFile(file.Join(yakit.GetHomeDir(), "ai-training-secret.txt"))~
+    if expected == "" {
+        rsp.Write(json.dumps({
+            "ok": false,
+            "reason": "empty ai-training-secret, try to create it in: yakit-projects/ai-training-secret.txt",
+            "result": "",
+        }))
+        return
+    }
+    if secret != string(expected) {
+        rsp.Write(json.dumps({
+            "ok": false,
+            "reason": "invalid secret key, find in yakit-projects/ai-training-secret.txt or your admin",
+            "result": "",
+        }))
+        return
+    }
+
     rsp.Header().Set("Content-Type", "application/json")
     try {
         data = io.ReadAll(req.Body)~
