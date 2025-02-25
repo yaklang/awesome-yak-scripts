@@ -37,11 +37,9 @@ submitAITrainingMaterial = (aiMaterial) => {
     
 
     if aikbbase == "" {
-        log.Error("cannot find ai-training-materails repos")
-        return
+        die("cannot find ai-training-materails repos")
     }
     
-
     log.Info("find ai-training repos: %v", aikbbase)
     os.Chdir(aikbbase)
 
