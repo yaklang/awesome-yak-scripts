@@ -121,8 +121,8 @@ register("/api/ai/training/material/collect*", (rsp, req) => {
         return
     }
 
-    expected = io.ReadFile(file.Join(yakit.GetHomeDir(), "ai-training-secret.txt"))~
-    if expected == "" {
+    expected, err = io.ReadFile(file.Join(yakit.GetHomeDir(), "ai-training-secret.txt"))
+    if expected == "" || err != nil {
         rsp.Write(json.dumps({
             "ok": false,
             "reason": "empty ai-training-secret, try to create it in: yakit-projects/ai-training-secret.txt",
