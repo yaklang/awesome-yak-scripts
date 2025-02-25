@@ -67,6 +67,10 @@ After=network.target
 
 [Service]
 Type=simple
+Environment=HOME=/root
+Environment=XDG_CONFIG_HOME=/root/.config
+Environment=XDG_DATA_HOME=/root/.local/share
+Environment=XDG_CACHE_HOME=/root/.cache
 ExecStart=$YAK_BIN $SCRIPT_PATH
 StandardInput=null
 StandardOutput=null
