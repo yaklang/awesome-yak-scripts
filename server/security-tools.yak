@@ -96,7 +96,7 @@ submitAITrainingMaterial = (aiMaterial) => {
             `bash -c` + str.Quote(`git branch | grep -v main | xargs git branch -D`), 
         )
 
-        cmds = [f"git checkout -b ${branchName}", f"git checkout ${branchName}", "mkdir -p library-usage/unverified", f"cp ${fname} library-usage/unverified", "git add .", "git commit -m '[auto] add ai training materials'", f"git push origin ${branchName}", f"gh pr create --title '[Unverified] AI Training Material' --body 'This doc is created via AI, human should verify it' --repo yaklang/yaklang-ai-training-materials --head ${branchName} --base main"]
+        cmds = [f"git checkout -b ${branchName}", f"git checkout ${branchName}", "mkdir -p _unverified", f"cp ${fname} _unverified", "git add .", "git commit -m '[auto] add ai training materials'", f"git push origin ${branchName}", f"gh pr create --title '[Unverified] AI Training Material' --body 'This doc is created via AI, human should verify it' --repo yaklang/yaklang-ai-training-materials --head ${branchName} --base main"]
 
         for cmd in cmds {
             log.Info("exec cmd: %v", cmd)
