@@ -28,7 +28,9 @@ requestEcho = (writer, req) => {
 }
 register("/api/request/echo*", requestEcho)
 register("/api/yak/search*", (writer, req) => {
+    rsp = writer;
     query = req.URL.Query().Get("query")
+    rsp.Header().Set("Content-Type", "text/event-stream")
     if query == "" {
         writer.WriteHeader(500)
         writer.Write(`id: 1`)
@@ -38,8 +40,6 @@ register("/api/yak/search*", (writer, req) => {
         return
     }
 
-    rsp = writer;
-    rsp.Header().Set("Content-Type", "text/event-stream")
     if req.Method == "OPTIONS" {
         rsp.WriteHeader(204)
         return
