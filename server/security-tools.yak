@@ -1,6 +1,12 @@
 port = cli.Int("port", cli.setDefault(8099), cli.setHelp("设置端口函数"))
 cli.check()
 
+apiKey, err := file.ReadFile(file.Join(yakit.GetHomeDir(), "yaklang-com-search.txt"))
+if err != nil {
+    log.Error("cannot read api key: %v", err)
+}
+apiKey = str.TrimSpace(string(apiKey))
+
 routes = {}
 register = (route, callback) => {
     if route in routes {
@@ -21,6 +27,47 @@ requestEcho = (writer, req) => {
     writer.Write(reqBytes)
 }
 register("/api/request/echo*", requestEcho)
+register("/api/yak/search*", (writer, req) => {
+    query = req.URL.Query().Get("query")
+    if query == "" {
+        writer.WriteHeader(500)
+        writer.Write(`id: 1`)
+        writer.Write("\r\n")
+        writer.Write(`data: {"error": "empty query"}`)
+        writer.Write("\r\n\r\n")
+        return
+    }
+
+    rsp = writer;
+    rsp.Header().Set("Content-Type", "text/event-stream")
+    if req.Method == "OPTIONS" {
+        rsp.WriteHeader(204)
+        return
+    }
+
+    if apiKey == "" {
+        rsp.WriteHeader(500)
+        rsp.Write(`id: 1`)
+        rsp.Write("\r\n")
+        rsp.Write(`data: {"error": "empty api key"}`)
+        rsp.Write("\r\n\r\n")
+        return
+    }
+
+    stream = ai.StructuredStream(query, ai.type("yaklang-com-search"), ai.apiKey(apiKey))~
+    id = 0
+    for result in stream {
+        id++
+        buf = bufio.NewBuffer()
+        buf.Write("id: " + sprint(id) + "\r\n")
+        buf.Write("data: ")
+        buf.Write(json.Marshal(result)~)
+        buf.Write("\r\n")
+        buf.Write("\r\n")
+        rsp.Write(buf.Bytes())
+        rsp.Flush()
+    }
+})
 
 # AI Material Collection
 submitAITrainingMaterial = (aiMaterial) => {
