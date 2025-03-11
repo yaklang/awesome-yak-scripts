@@ -1,4 +1,5 @@
 port = cli.Int("port", cli.setDefault(8099), cli.setHelp("设置端口函数"))
+cors = cli.Bool("cors", cli.setDefault(false), cli.setHelp("是否启用CORS"))
 cli.check()
 
 apiKey, err := file.ReadFile(file.Join(yakit.GetHomeDir(), "yaklang-com-search.txt"))
@@ -27,6 +28,57 @@ requestEcho = (writer, req) => {
     writer.Write(reqBytes)
 }
 register("/api/request/echo*", requestEcho)
+register("/api/yak/aiteacher*", (writer, req) => {
+    rsp = writer;
+
+    code := req.URL.Query().Get("code")
+    if code == "" {
+        // read req body
+        log.Info("Start to handle AI teacher request")
+        body := io.ReadAll(req.Body)~
+        if body == "" {
+            log.Error("Empty request body received")
+            writer.WriteHeader(500)
+            writer.Write(`{"error": "empty body"}`)
+            return
+        }
+        jsonBody := json.loads(body)~
+        code = jsonBody.code
+    }
+    log.Info("Received code request: %#v", code)
+    if code == "" {
+        log.Error("Empty code field in request")
+        writer.WriteHeader(500)
+        writer.Write(`{"error": "empty code"}`)
+        return
+    }
+    
+    dump(ai)
+    log.Info("Creating AI stream with yaklang-writer type")
+    stream, err := ai.StructuredStream(code, ai.type("yaklang-writer"), ai.apiKey(apiKey))
+    if err != nil {
+        log.Error("Failed to create AI stream: %v", err)
+        writer.WriteHeader(500)
+        writer.Write(`{"error": "cannot create ai stream"}`)
+        return
+    }
+    
+    rsp.Header().Set("Content-Type", "text/event-stream")
+    id = 0
+    log.Info("Start streaming AI response")
+    for result in stream {
+        id++
+        rsp.Write("id: " + sprint(id) + "\r\n")
+        rsp.Write("data: ")
+        msg := json.Marshal(result)~
+        log.Info("AI response: %v", string(msg))
+        rsp.Write(msg)
+        rsp.Write("\r\n")
+        rsp.Write("\r\n")
+        rsp.Flush()
+    }
+    log.Info("AI stream completed, sent %v messages", id)
+})
 register("/api/yak/search*", (writer, req) => {
     rsp = writer;
     query = req.URL.Query().Get("query")
@@ -288,9 +340,11 @@ go func {
                 }
 
 
-                // writer.Header().Set("Access-Control-Allow-Origin", "*")
-                // writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-                // writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+                if cors {
+                    writer.Header().Set("Access-Control-Allow-Origin", "*")
+                    writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                    writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+                }
                 writer.Header().Set("X-Request-Remote-Addr", remoteAddr)
 
                 # 处理 OPTIONS 请求
