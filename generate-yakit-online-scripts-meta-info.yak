@@ -1,7 +1,8 @@
+
 outputRoot = "/tmp/"
 
 baseDir = file.Join(outputRoot, "all-scripts/")
-ragsyncOutput = file.Join(outputRoot, "/ragsync-output/")
+ragsyncOutput = file.Join(outputRoot, "ragsync-output/")
 file.MkdirAll(baseDir)~
 file.MkdirAll(ragsyncOutput)~
 
