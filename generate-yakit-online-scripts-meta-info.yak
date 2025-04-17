@@ -1,0 +1,88 @@
+outputRoot = "/tmp/"
+
+baseDir = file.Join(outputRoot, "all-scripts/")
+ragsyncOutput = file.Join(outputRoot, "/ragsync-output/")
+file.MkdirAll(baseDir)~
+file.MkdirAll(ragsyncOutput)~
+
+m = sync.NewMutex()
+saveRagSync = (targetMD, result) => {
+    m.Lock()
+    defer m.Unlock()
+    file.Save(targetMD, f`# ${(result["app"] == "*" || result["app"] == "") ? "通用漏洞（General）":result["app"]}
+# SEO
+${result["seo"]}。${result["seo_en"]}
+# Summary
+${result["summary"]}。${result["summary_en"]}
+`)
+}
+
+wg = sync.NewSizedWaitGroup(15)
+for script in db.YieldYakScriptAll() {
+    script := script
+    wg.Add()
+    go func {
+        defer wg.Done()
+        uid := script.Uuid
+        if uid == "" {
+            return
+        }
+        
+        targetFile := file.Join(baseDir, "%v.json" % uid)
+        mdfile := file.Join(ragsyncOutput, "%v.md" % uid)
+        if file.IsExisted(targetFile) {
+            raw, _ = file.ReadFile(targetFile)
+            result := json.loads(string(raw))
+            if (int(result.updated_at) < int(script.UpdatedAt.Unix())) || result["seo"] == ""  {
+                log.Warn("remove invalid and not right script meta[%v]: %v", script.ScriptName, targetFile)
+                file.Remove(targetFile)~
+            }else{
+                log.Info("existed script[%v]: %v", script.ScriptName, targetFile)
+                if file.IsExisted(mdfile) {
+                    return
+                }
+                saveRagSync(mdfile, result)
+                return
+            }
+        }
+
+        result, err := ai.FunctionCall(
+            <<<CONTENT
+# 插件名：%v
+# 插件描述：%v
+%v
+CONTENT % [script.ScriptName + " online:" + script.OnlineScriptName, script.Help, script.Content], 
+            {
+                "seo": "类型：字符串，语言：中文，逗号分隔的字符串，提取总结关键字，方便搜索该插件", 
+                "seo_en": "类型：字符串，语言：English，逗号分隔的字符串，提取总结关键字，方便搜索该插件", 
+                "summary": "类型：字符串。语言：中文，总结该插件的核心意图和想要做的事情，要检测的漏洞，帮助AI更好推荐", 
+                "summary_en": "类型：字符串。语言：英文，总结该插件的核心意图和想要做的事情，要检测的漏洞，帮助AI更好推荐",
+                "app": "类型：String，语言随意，这个插件针对的应用是什么，如果你可以提取出来，放在这里，例如xx系统等，xxx应用，提取不出来的话，直接写*,我会以此区分是否是专用漏洞"
+            }, 
+            ai.debugStream(true), 
+        )
+        if err != nil {
+            log.Error("MET ERROR: %v", err)
+            result = {
+                "seo": "", "seo_en": "", 
+                "summary": "", "summary_en": "", 
+                "success": false, 
+                "uuid": uid, 
+                "updated_at": script.UpdatedAt.Unix(), 
+                "reason": "%v" % err, "app": "*",
+            }
+        } else {
+            result["success"] = true
+            result["reason"] = ""
+            result["uuid"] = uid
+            result["updated_at"] = script.UpdatedAt.Unix()
+            if "app" not in result {
+                result["app"] = "*"
+            }
+        }
+
+        raw := json.dumps(result)
+        file.Save(targetFile /*type: string*/, raw)~
+    }
+}
+wg.Wait()
